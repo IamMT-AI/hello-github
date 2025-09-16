@@ -1,0 +1,158 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI Cartoon Figurine MVP - Week 1",
+    "tags": ["mvp", "week1", "cartoon-figurine"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(requests_total[5m])",
+            "legendFormat": "{{endpoint}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"api-gateway\"}",
+            "legendFormat": "API Gateway"
+          },
+          {
+            "expr": "up{job=\"stylize2d\"}",
+            "legendFormat": "Stylize2D Service"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(requests_total{status=\"error\"}[5m]) / rate(requests_total[5m]) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage",
+            "max": 100,
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Processing Pipeline",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(stylization_duration_seconds_bucket[5m]))",
+            "legendFormat": "Stylization Time (95th)"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(fusion_duration_seconds_bucket[5m]))",
+            "legendFormat": "Fusion Time (95th)"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "version": 1
+  },
+  "meta": {
+    "type": "db",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "slug": "ai-cartoon-figurine-mvp-week-1",
+    "url": "/d/cartoon-figurine-mvp/ai-cartoon-figurine-mvp-week-1",
+    "expires": "0001-01-01T00:00:00Z",
+    "created": "2024-01-01T00:00:00Z",
+    "updated": "2024-01-01T00:00:00Z",
+    "updatedBy": "admin",
+    "createdBy": "admin",
+    "version": 1,
+    "hasAcl": false,
+    "isFolder": false,
+    "folderId": 0,
+    "folderTitle": "",
+    "folderUrl": "",
+    "provisioned": false,
+    "provisionedExternalId": ""
+  }
+}
