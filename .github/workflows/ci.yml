@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Code Quality
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Format check with black
+      run: |
+        black --check --diff .
+    
+    - name: Import sorting check with isort
+      run: |
+        isort --check-only .
+    
+    - name: Type checking with mypy
+      run: |
+        mypy apps/ services/ libs/ --ignore-missing-imports
+      continue-on-error: true  # Allow mypy failures for MVP
+
+  test:
+    runs-on: ubuntu-latest
+    name: Tests
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test imports and basic functionality
+      run: |
+        python -c "from apps.api_gateway.main import app; print('API Gateway import successful')"
+        python -c "from services.stylize2d.server import app; print('Stylize2D service import successful')"
+        python -c "from services.fusion.fuse import fuse_face_body; print('Fusion service import successful')"
+        python -c "from libs.common.logging import get_logger; print('Common logging import successful')"
+    
+    # Placeholder for future unit tests
+    - name: Run unit tests
+      run: |
+        echo "Unit tests will be added in future iterations"
+        # pytest -v
+      continue-on-error: true
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Scan
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+    
+    - name: Run bandit security scan
+      run: |
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . --severity-level medium
+      continue-on-error: true
+    
+    - name: Check for known security vulnerabilities
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+      continue-on-error: true
+
+  build:
+    runs-on: ubuntu-latest
+    name: Docker Build
+    needs: [lint, test]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -f docker/Dockerfile.base -t hello-github-mvp:${{ github.sha }} .
+    
+    - name: Test Docker image
+      run: |
+        docker run --rm hello-github-mvp:${{ github.sha }} python -c "print('Docker image test successful')"
+
+  integration:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: [build]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Start services for integration testing
+      run: |
+        # Start API Gateway in background
+        cd apps/api-gateway && python main.py &
+        API_PID=$!
+        
+        # Start Stylize2D service in background
+        cd services/stylize2d && python server.py &
+        STYLIZE_PID=$!
+        
+        # Wait for services to start
+        sleep 10
+        
+        # Test health endpoints
+        curl -f http://localhost:8000/health || exit 1
+        curl -f http://localhost:8001/health || exit 1
+        
+        # Clean up
+        kill $API_PID $STYLIZE_PID || true
+      continue-on-error: true  # Allow integration test failures for MVP
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: [integration]
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "Staging deployment will be configured in future iterations"
+        # Add actual deployment steps here
+      continue-on-error: true

@@ -1,0 +1,15 @@
+# Global code owners
+* @IamMT-AI
+
+# API Gateway
+/apps/api-gateway/ @IamMT-AI
+
+# Services
+/services/ @IamMT-AI
+
+# Infrastructure
+/infra/ @IamMT-AI
+
+# Models and ML components
+/models/ @IamMT-AI
+/tools/eval_avatar.py @IamMT-AI

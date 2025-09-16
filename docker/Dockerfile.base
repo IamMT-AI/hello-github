@@ -1,0 +1,51 @@
+# Base Docker image for AI Cartoon Figurine MVP
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy requirements first for better layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/uploads /app/processed /app/models /app/logs \
+    && chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Default command (can be overridden)
+CMD ["uvicorn", "apps.api-gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Labels for metadata
+LABEL maintainer="IamMT-AI"
+LABEL version="0.1.0-mvp"
+LABEL description="AI Cartoon Figurine Generation MVP - Base Image"
